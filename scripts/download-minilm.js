@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { downloadFile, parseArgs } = require("./lib/download-utils");
+
+const forBuild = process.argv.includes("--for-build");
+const MODEL_DIR = forBuild
+  ? path.join(__dirname, "..", "resources", "bin", "all-MiniLM-L6-v2")
+  : path.join(os.homedir(), ".cache", "openwhispr", "embedding-models", "all-MiniLM-L6-v2");
+
+// Pinned to a fixed revision: `resolve/main` tracks whatever HEAD becomes, so
+// an upstream re-publish could swap the weights under a unchanged URL.
+const HF_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41";
+
+const FILES = [
+  {
+    name: "model.onnx",
+    url: `https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/${HF_REVISION}/onnx/model.onnx`,
+    sha256: "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+  },
+  {
+    name: "tokenizer.json",
+    url: `https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/${HF_REVISION}/tokenizer.json`,
+    sha256: "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+  },
+];
+
+async function main() {
+  console.log("\n[embedding-model] Downloading all-MiniLM-L6-v2 ONNX model...\n");
+
+  const args = parseArgs();
+
+  const allExist = FILES.every((f) => fs.existsSync(path.join(MODEL_DIR, f.name)));
+  if (allExist && !args.isForce) {
+    console.log("[embedding-model] Model files already exist (use --force to re-download)\n");
+    return;
+  }
+
+  fs.mkdirSync(MODEL_DIR, { recursive: true });
+
+  for (const file of FILES) {
+    const destPath = path.join(MODEL_DIR, file.name);
+
+    if (fs.existsSync(destPath) && !args.isForce) {
+      console.log(`[embedding-model] ${file.name} already exists, skipping`);
+      continue;
+    }
+
+    console.log(`[embedding-model] Downloading ${file.name} from ${file.url}`);
+
+    try {
+      await downloadFile(file.url, destPath);
+      const actual = crypto.createHash("sha256").update(fs.readFileSync(destPath)).digest("hex");
+      if (actual !== file.sha256) {
+        throw new Error(`sha256 mismatch for ${file.name}: expected ${file.sha256}, got ${actual}`);
+      }
+      const stats = fs.statSync(destPath);
+      const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+      console.log(`[embedding-model] ${file.name} downloaded (${sizeMB}MB, sha256 verified)`);
+    } catch (error) {
+      console.error(`[embedding-model] Failed to download ${file.name}: ${error.message}`);
+      if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  console.log(`\n[embedding-model] Model ready at ${MODEL_DIR}\n`);
+}
+
+main().catch(console.error);

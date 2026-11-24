@@ -1,0 +1,12 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="vsluh" x1="128" y1="128" x2="896" y2="896" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#C7B8FF"/>
+    <stop offset="0.5" stop-color="#F3A5E8"/>
+    <stop offset="1" stop-color="#FFB25F"/>
+  </linearGradient>
+</defs>
+<rect width="1024" height="1024" rx="220" fill="url(#vsluh)"/>
+<path d="M252 328L438 696C468 753 556 753 586 696L772 328" stroke="#090909" stroke-width="88" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M378 328L512 572L646 328" stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
